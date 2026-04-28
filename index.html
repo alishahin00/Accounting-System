@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description"
+        content="Excel-based Accounting System — manage accounts, journal entries, trial balance, income statement, and balance sheet in a spreadsheet-like interface." />
+    <title>Accounting System</title>
+    <link rel="stylesheet" href="style.css" />
+    <!-- Google Fonts – Inter for a clean, modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- SheetJS (xlsx) for Excel file parsing -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+
+    <!-- ===== TOP NAVIGATION BAR ===== -->
+    <nav id="navbar">
+        <div class="nav-brand">
+            <span class="brand-icon">📊</span>
+            <span class="brand-text">Accounting System</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#" class="nav-link active" data-page="accounts">Accounts Codes</a></li>
+            <li><a href="#" class="nav-link" data-page="journal">Journal Entry</a></li>
+            <li><a href="#" class="nav-link" data-page="trial">Trial Balance</a></li>
+            <li><a href="#" class="nav-link" data-page="income">Income Statement</a></li>
+            <li><a href="#" class="nav-link" data-page="balance">Balance Sheet</a></li>
+        </ul>
+        <!-- Mobile hamburger -->
+        <button id="mobile-menu-btn" aria-label="Toggle navigation menu">
+            <span></span><span></span><span></span>
+        </button>
+    </nav>
+
+    <!-- ===== MAIN CONTENT AREA ===== -->
+    <main id="app">
+
+        <!-- ==================== 1. ACCOUNTS CODES PAGE ==================== -->
+        <section id="page-accounts" class="page active">
+            <div class="page-header">
+                <div>
+                    <h1>Chart of Accounts</h1>
+                    <p class="subtitle">Define and manage your account codes</p>
+                </div>
+                <div class="header-actions">
+                    <input type="text" id="accounts-search" class="search-input" placeholder="🔍  Search accounts…" />
+                    <button id="btn-expand-all" class="btn btn-outline" title="Expand All">▶ Expand All</button>
+                    <button id="btn-collapse-all" class="btn btn-outline" title="Collapse All">▼ Collapse All</button>
+                    <button id="btn-add-account" class="btn btn-primary">+ Add Account</button>
+                    <button id="btn-import-excel" class="btn btn-accent" title="Import from Excel">📂 Import
+                        Excel</button>
+                    <input type="file" id="excel-file-input" accept=".xlsx,.xls" class="hidden" />
+                    <button id="btn-export-accounts" class="btn btn-outline" title="Export to CSV">⬇ Export CSV</button>
+                </div>
+            </div>
+
+            <!-- Add / Edit Account Modal Form (inline) -->
+            <div id="account-form-wrapper" class="form-card hidden">
+                <h2 id="account-form-title">Add New Account</h2>
+                <form id="account-form" autocomplete="off">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="acc-id">Account ID</label>
+                            <input type="text" id="acc-id" placeholder="e.g. 1010" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="acc-name">Account Name</label>
+                            <input type="text" id="acc-name" placeholder="e.g. Cash" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="acc-type">Account Type</label>
+                            <select id="acc-type" required>
+                                <option value="">Select type…</option>
+                                <option value="Asset">Asset</option>
+                                <option value="LiabEquity">Liabilities &amp; Equity</option>
+                                <option value="Revenue">Revenue</option>
+                                <option value="Expense">Expense</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="btn-save-account">Save Account</button>
+                        <button type="button" class="btn btn-ghost" id="btn-cancel-account">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Accounts Table -->
+            <div class="table-container">
+                <table id="accounts-table" class="excel-table">
+                    <thead>
+                        <tr>
+                            <th class="col-num">#</th>
+                            <th>Account Code</th>
+                            <th>Account Name</th>
+                            <th>Type</th>
+                            <th class="col-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accounts-tbody">
+                        <!-- Rows rendered by JS -->
+                    </tbody>
+                </table>
+                <div id="accounts-empty" class="empty-state hidden">
+                    <p>No accounts yet. Click <strong>+ Add Account</strong> to get started.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 2. JOURNAL ENTRY PAGE ==================== -->
+        <section id="page-journal" class="page">
+            <div class="page-header">
+                <div>
+                    <h1>Journal Entries</h1>
+                    <p class="subtitle">Record transactions with debits and credits</p>
+                </div>
+                <div class="header-actions">
+                    <input type="text" id="journal-search" class="search-input" placeholder="🔍  Search entries…" />
+                    <button id="btn-add-row" class="btn btn-primary">+ Add Row</button>
+                    <button id="btn-export-journal" class="btn btn-outline" title="Export to CSV">⬇ Export CSV</button>
+                </div>
+            </div>
+
+            <div class="table-container journal-table-container">
+                <table id="journal-table" class="excel-table journal-full-table">
+                    <thead>
+                        <tr>
+                            <th class="col-num">#</th>
+                            <th class="jrn-col-jno">Journal No</th>
+                            <th class="jrn-col-date">Date</th>
+                            <th class="jrn-col-account">Account</th>
+                            <th class="jrn-col-type">Account Type</th>
+                            <th class="jrn-col-cc">Cost Center</th>
+                            <th class="jrn-col-num">Numerical</th>
+                            <th>Description</th>
+                            <th class="col-money">Debit</th>
+                            <th class="col-money">Credit</th>
+                            <th class="col-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="journal-tbody">
+                        <!-- Rows rendered by JS -->
+                    </tbody>
+                    <tfoot>
+                        <tr class="totals-row">
+                            <td colspan="8" class="totals-label">Totals</td>
+                            <td class="col-money" id="total-debit">0.00</td>
+                            <td class="col-money" id="total-credit">0.00</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <!-- Debit / Credit balance indicator -->
+                <div id="balance-indicator" class="balance-indicator balanced">
+                    <span id="balance-icon">✓</span>
+                    <span id="balance-text">Balanced — Debit equals Credit</span>
+                </div>
+                <div id="journal-empty" class="empty-state hidden">
+                    <p>No journal entries yet. Click <strong>+ Add Row</strong> to begin recording transactions.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 3. TRIAL BALANCE PAGE ==================== -->
+        <section id="page-trial" class="page">
+            <div class="page-header">
+                <div>
+                    <h1>Trial Balance</h1>
+                    <p class="subtitle">Full financial breakdown — Beginning, Movement, Totals &amp; Balances</p>
+                </div>
+                <div class="header-actions">
+                    <button id="btn-manage-opening" class="btn btn-accent" title="Manage Opening Balances">📋 Opening
+                        Balances</button>
+                    <button id="btn-export-trial" class="btn btn-outline" title="Export to CSV">⬇ Export CSV</button>
+                </div>
+            </div>
+
+            <!-- Opening Balances Management Panel -->
+            <div id="opening-balance-panel" class="form-card hidden">
+                <h2>Manage Opening Balances</h2>
+                <p class="subtitle" style="margin-bottom:14px;">Set beginning-of-year debit/credit balances for each
+                    account. Only leaf accounts (no children) need opening balances — parents aggregate automatically.
+                </p>
+                <div class="ob-search-row">
+                    <input type="text" id="ob-search" class="search-input" placeholder="🔍  Search accounts…"
+                        style="width:300px" />
+                </div>
+                <div class="table-container" style="max-height:400px;overflow-y:auto;margin-top:12px;">
+                    <table class="excel-table" id="ob-table">
+                        <thead>
+                            <tr>
+                                <th>Account Code</th>
+                                <th>Account Name</th>
+                                <th class="col-money">Opening Debit</th>
+                                <th class="col-money">Opening Credit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ob-tbody"></tbody>
+                    </table>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-primary" id="btn-save-opening">💾 Save Opening
+                        Balances</button>
+                    <button type="button" class="btn btn-ghost" id="btn-close-opening">Close</button>
+                </div>
+            </div>
+
+            <div class="table-container tb-table-container">
+                <table id="trial-table" class="excel-table report-table tb-full-table">
+                    <thead>
+                        <!-- Group header row -->
+                        <tr class="tb-group-header-row">
+                            <th rowspan="2" class="col-num">#</th>
+                            <th rowspan="2" class="tb-col-code">Account Code</th>
+                            <th rowspan="2" class="tb-col-name">Account Name</th>
+                            <th colspan="2" class="tb-group-th tb-group-beginning">BEGINNING OF THE YEAR</th>
+                            <th colspan="2" class="tb-group-th tb-group-movement">MOVEMENT THROUGH THE YEAR</th>
+                            <th colspan="2" class="tb-group-th tb-group-totals">TRIAL BALANCE BY TOTALS</th>
+                            <th colspan="2" class="tb-group-th tb-group-balances">TRIAL BALANCE BY BALANCES</th>
+                        </tr>
+                        <!-- Sub-header row -->
+                        <tr class="tb-sub-header-row">
+                            <th class="col-money tb-beg-col">Debit</th>
+                            <th class="col-money tb-beg-col">Credit</th>
+                            <th class="col-money tb-mov-col">Debit</th>
+                            <th class="col-money tb-mov-col">Credit</th>
+                            <th class="col-money tb-tot-col">Debit</th>
+                            <th class="col-money tb-tot-col">Credit</th>
+                            <th class="col-money tb-bal-col">Debit</th>
+                            <th class="col-money tb-bal-col">Credit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trial-tbody"></tbody>
+                    <tfoot>
+                        <tr class="totals-row">
+                            <td colspan="3" class="totals-label">Grand Totals</td>
+                            <td class="col-money" id="tb-gt-beg-d">0.00</td>
+                            <td class="col-money" id="tb-gt-beg-c">0.00</td>
+                            <td class="col-money" id="tb-gt-mov-d">0.00</td>
+                            <td class="col-money" id="tb-gt-mov-c">0.00</td>
+                            <td class="col-money" id="tb-gt-tot-d">0.00</td>
+                            <td class="col-money" id="tb-gt-tot-c">0.00</td>
+                            <td class="col-money" id="tb-gt-bal-d">0.00</td>
+                            <td class="col-money" id="tb-gt-bal-c">0.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <div id="trial-empty" class="empty-state hidden">
+                    <p>No data available. Add journal entries or opening balances first.</p>
+                </div>
+            </div>
+
+            <!-- Balance check card -->
+            <div class="tb-balance-card" id="tb-balance-card">
+                <div class="eq-side">
+                    <span class="eq-label">Total Debit</span>
+                    <span class="eq-value" id="tb-eq-debit">0.00</span>
+                </div>
+                <span class="eq-operator">=</span>
+                <div class="eq-side">
+                    <span class="eq-label">Total Credit</span>
+                    <span class="eq-value" id="tb-eq-credit">0.00</span>
+                </div>
+                <span class="eq-status balanced" id="tb-eq-status">✓ Balanced</span>
+            </div>
+        </section>
+
+        <!-- ==================== 4. INCOME STATEMENT PAGE ==================== -->
+        <section id="page-income" class="page">
+            <div class="page-header">
+                <div>
+                    <h1>Income Statement</h1>
+                    <p class="subtitle">Revenues, expenses, and net income</p>
+                </div>
+                <div class="header-actions">
+                    <button id="btn-export-income" class="btn btn-outline" title="Export to CSV">⬇ Export CSV</button>
+                </div>
+            </div>
+
+            <div class="report-wrapper">
+                <div class="report-section">
+                    <h2 class="report-heading revenue-heading">Revenues</h2>
+                    <table class="excel-table report-table">
+                        <thead>
+                            <tr>
+                                <th>Account Name</th>
+                                <th class="col-money">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="income-revenue-tbody"></tbody>
+                        <tfoot>
+                            <tr class="subtotal-row">
+                                <td class="totals-label">Total Revenue</td>
+                                <td class="col-money" id="total-revenue">0.00</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="report-section">
+                    <h2 class="report-heading expense-heading">Expenses</h2>
+                    <table class="excel-table report-table">
+                        <thead>
+                            <tr>
+                                <th>Account Name</th>
+                                <th class="col-money">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="income-expense-tbody"></tbody>
+                        <tfoot>
+                            <tr class="subtotal-row">
+                                <td class="totals-label">Total Expenses</td>
+                                <td class="col-money" id="total-expenses">0.00</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="net-income-card" id="net-income-card">
+                    <span class="net-label">Net Income</span>
+                    <span class="net-value" id="net-income-value">0.00</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 5. BALANCE SHEET PAGE ==================== -->
+        <section id="page-balance" class="page">
+            <div class="page-header">
+                <div>
+                    <h1>Balance Sheet</h1>
+                    <p class="subtitle">Assets = Liabilities + Equity</p>
+                </div>
+                <div class="header-actions">
+                    <button id="btn-export-balance" class="btn btn-outline" title="Export to CSV">⬇ Export CSV</button>
+                </div>
+            </div>
+
+            <div class="report-wrapper balance-grid">
+                <!-- Assets -->
+                <div class="report-section">
+                    <h2 class="report-heading asset-heading">Assets</h2>
+                    <table class="excel-table report-table">
+                        <thead>
+                            <tr>
+                                <th>Account Name</th>
+                                <th class="col-money">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bs-assets-tbody"></tbody>
+                        <tfoot>
+                            <tr class="subtotal-row">
+                                <td class="totals-label">Total Assets</td>
+                                <td class="col-money" id="total-assets">0.00</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Liabilities & Equity (Combined) -->
+                <div class="report-section bs-liab-equity-section">
+                    <h2 class="report-heading liab-equity-heading">Liabilities &amp; Equity</h2>
+
+                    <!-- Liabilities sub-section -->
+                    <div class="bs-sub-section">
+                        <h3 class="bs-sub-heading liability-sub-heading">Liabilities</h3>
+                        <table class="excel-table report-table">
+                            <thead>
+                                <tr>
+                                    <th>Account Name</th>
+                                    <th class="col-money">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bs-liabilities-tbody"></tbody>
+                            <tfoot>
+                                <tr class="subtotal-row">
+                                    <td class="totals-label">Total Liabilities</td>
+                                    <td class="col-money" id="total-liabilities">0.00</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Equity sub-section -->
+                    <div class="bs-sub-section">
+                        <h3 class="bs-sub-heading equity-sub-heading">Equity</h3>
+                        <table class="excel-table report-table">
+                            <thead>
+                                <tr>
+                                    <th>Account Name</th>
+                                    <th class="col-money">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bs-equity-tbody"></tbody>
+                            <tfoot>
+                                <tr class="subtotal-row">
+                                    <td class="totals-label">Total Equity</td>
+                                    <td class="col-money" id="total-equity">0.00</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Combined Total -->
+                    <div class="bs-combined-total">
+                        <span class="bs-combined-label">Total Liabilities &amp; Equity</span>
+                        <span class="bs-combined-value" id="total-liab-equity-combined">0.00</span>
+                    </div>
+                </div>
+
+                <!-- Balance Equation -->
+                <div class="balance-equation-card" id="balance-equation-card">
+                    <div class="eq-side">
+                        <span class="eq-label">Total Assets</span>
+                        <span class="eq-value" id="eq-assets">0.00</span>
+                    </div>
+                    <span class="eq-operator">=</span>
+                    <div class="eq-side">
+                        <span class="eq-label">Liabilities &amp; Equity</span>
+                        <span class="eq-value" id="eq-liab-equity">0.00</span>
+                    </div>
+                    <span class="eq-status" id="eq-status">✓ Balanced</span>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Toast notification container -->
+    <div id="toast-container"></div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
